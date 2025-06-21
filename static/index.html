@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+        <title>System Metrics Monitor</title>
+        <style>
+            * {
+                margin: 0;
+                padding: 0;
+                box-sizing: border-box;
+            }
+
+            body {
+                font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+                background: #667eea;
+                min-height: 100vh;
+                padding: 20px;
+                color: #333;
+            }
+
+            .container {
+                max-width: 800px;
+                margin: 0 auto;
+                background: rgba(255, 255, 255, 0.95);
+                border-radius: 20px;
+                padding: 30px;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+                backdrop-filter: blur(10px);
+            }
+
+            h1 {
+                text-align: center;
+                color: #2c3e50;
+                margin-bottom: 10px;
+                font-size: 2.5rem;
+                font-weight: 300;
+            }
+
+            .subtitle {
+                text-align: center;
+                color: #7f8c8d;
+                margin-bottom: 40px;
+                font-size: 1.1rem;
+            }
+
+            .metrics-grid {
+                display: grid;
+                grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+                gap: 20px;
+                margin-top: 30px;
+            }
+
+            .metric-card {
+                background: white;
+                border-radius: 15px;
+                padding: 25px;
+                box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+                transition: transform 0.3s ease, box-shadow 0.3s ease;
+                border-left: 5px solid #3498db;
+            }
+
+            .metric-card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 15px 40px rgba(0, 0, 0, 0.15);
+            }
+
+            .metric-card.memory {
+                border-left-color: #e74c3c;
+            }
+
+            .metric-card.cpu {
+                border-left-color: #2ecc71;
+            }
+
+            .metric-title {
+                font-size: 1.3rem;
+                font-weight: 600;
+                margin-bottom: 15px;
+                display: flex;
+                align-items: center;
+                gap: 10px;
+            }
+
+            .metric-title.memory {
+                color: #e74c3c;
+            }
+
+            .metric-title.cpu {
+                color: #2ecc71;
+            }
+
+            .metric-value {
+                font-size: 1.1rem;
+                line-height: 1.6;
+                color: #555;
+                font-family: "Courier New", monospace;
+            }
+
+            .status {
+                display: inline-block;
+                padding: 5px 12px;
+                border-radius: 20px;
+                font-size: 0.9rem;
+                font-weight: 500;
+                margin-top: 15px;
+            }
+
+            .status.connected {
+                background: #d5f4e6;
+                color: #27ae60;
+            }
+
+            .status.disconnected {
+                background: #fadbd8;
+                color: #e74c3c;
+            }
+
+            .icon {
+                width: 24px;
+                height: 24px;
+                fill: currentColor;
+            }
+
+            @keyframes pulse {
+                0% {
+                    opacity: 1;
+                }
+                50% {
+                    opacity: 0.5;
+                }
+                100% {
+                    opacity: 1;
+                }
+            }
+
+            .loading {
+                animation: pulse 1.5s infinite;
+            }
+
+            .api-info {
+                background: #f8f9fa;
+                border-radius: 10px;
+                padding: 20px;
+                margin-top: 30px;
+                border: 1px solid #e9ecef;
+            }
+
+            .api-info h3 {
+                color: #495057;
+                margin-bottom: 10px;
+            }
+
+            .api-link {
+                color: #007bff;
+                text-decoration: none;
+                font-family: "Courier New", monospace;
+            }
+
+            .api-link:hover {
+                text-decoration: underline;
+            }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <h1>System Metrics Monitor</h1>
+            <p class="subtitle">Real-time CPU and Memory statistics via Server-Sent Events</p>
+
+            <div class="status" id="connection-status">
+                <span id="status-text">Connecting...</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card memory">
+                    <div class="metric-title memory">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path
+                                d="M4,4H20A2,2 0 0,1 22,6V18A2,2 0 0,1 20,20H4A2,2 0 0,1 2,18V6A2,2 0 0,1 4,4M4,6V18H11V6H4M13,6V18H20V6H13Z"
+                            />
+                        </svg>
+                        Memory Usage
+                    </div>
+                    <div class="metric-value loading" id="memory">Loading memory stats...</div>
+                </div>
+
+                <div class="metric-card cpu">
+                    <div class="metric-title cpu">
+                        <svg class="icon" viewBox="0 0 24 24">
+                            <path
+                                d="M17,17H7V7H17M21,11V9H19V7C19,5.89 18.1,5 17,5H15V3H13V5H11V3H9V5H7C5.89,5 5,5.89 5,7V9H3V11H5V13H3V15H5V17C5,18.1 5.89,19 7,19H9V21H11V19H13V21H15V19H17C18.1,19 19,18.1 19,17V15H21V13H19V11M16,8H8V16H16V8Z"
+                            />
+                        </svg>
+                        CPU Usage
+                    </div>
+                    <div class="metric-value loading" id="cpu">Loading CPU stats...</div>
+                </div>
+            </div>
+
+            <div class="api-info">
+                <h3>API Endpoint</h3>
+                <p>Raw SSE stream: <a href="/stream" class="api-link" target="_blank">/stream</a></p>
+            </div>
+        </div>
+
+        <script>
+            const connectionStatus = document.getElementById("connection-status");
+            const statusText = document.getElementById("status-text");
+            const memoryEl = document.getElementById("memory");
+            const cpuEl = document.getElementById("cpu");
+
+            function updateConnectionStatus(connected) {
+                if (connected) {
+                    connectionStatus.className = "status connected";
+                    statusText.textContent = "Connected";
+                } else {
+                    connectionStatus.className = "status disconnected";
+                    statusText.textContent = "Disconnected";
+                }
+            }
+
+            function formatBytes(bytes) {
+                const units = ["B", "KB", "MB", "GB", "TB"];
+                let i = 0;
+                while (bytes >= 1024 && i < units.length - 1) {
+                    bytes /= 1024;
+                    i++;
+                }
+                return `${bytes.toFixed(2)} ${units[i]}`;
+            }
+
+            function parseMemoryData(data) {
+                const parts = data.split(", ");
+                const total = parseInt(parts[0].split(": ")[1]);
+                const used = parseInt(parts[1].split(": ")[1]);
+                const available = parseInt(parts[2].split(": ")[1]);
+                const usedPercent = parseFloat(parts[3].split(": ")[1]);
+
+                return `
+                <div><strong>Total:</strong> ${formatBytes(total)}</div>
+                <div><strong>Used:</strong> ${formatBytes(used)} (${usedPercent.toFixed(1)}%)</div>
+                <div><strong>Available:</strong> ${formatBytes(available)}</div>
+            `;
+            }
+
+            function parseCpuData(data) {
+                const parts = data.split(", ");
+                const user = parseFloat(parts[0].split(": ")[1]);
+                const system = parseFloat(parts[1].split(": ")[1]);
+                const idle = parseFloat(parts[2].split(": ")[1]);
+
+                return `
+                <div><strong>User:</strong> ${user.toFixed(2)}s</div>
+                <div><strong>System:</strong> ${system.toFixed(2)}s</div>
+                <div><strong>Idle:</strong> ${idle.toFixed(2)}s</div>
+            `;
+            }
+
+            const eventSource = new EventSource("/stream");
+
+            eventSource.onopen = function () {
+                updateConnectionStatus(true);
+            };
+
+            eventSource.onerror = function () {
+                updateConnectionStatus(false);
+            };
+
+            eventSource.addEventListener("mem", function (e) {
+                memoryEl.className = "metric-value";
+                memoryEl.innerHTML = parseMemoryData(e.data);
+            });
+
+            eventSource.addEventListener("cpu", function (e) {
+                cpuEl.className = "metric-value";
+                cpuEl.innerHTML = parseCpuData(e.data);
+            });
+
+            // Handle page unload
+            window.addEventListener("beforeunload", function () {
+                eventSource.close();
+            });
+        </script>
+    </body>
+</html>
