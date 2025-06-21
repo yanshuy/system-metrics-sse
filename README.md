@@ -10,7 +10,7 @@ go run main.go
 
 ## Accessing the Stream
 
-The SSE stream is available at: `http://localhost:3333/stream`
+The SSE stream is available at: `https://system-metrics.onrender.com/stream`
 
 You can use tools like `curl` or a web browser with JavaScript to connect:
 
@@ -18,4 +18,3 @@ You can use tools like `curl` or a web browser with JavaScript to connect:
 curl http://localhost:3333/stream
 ```
 
-Or use the provided `index.html` file in your browser.
