@@ -1,4 +1,4 @@
-Live demo: https://system-metrics.onrender.com/
+renders server: https://system-metrics.onrender.com/
 
 # System Metrics SSE Streamer
 
